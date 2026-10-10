@@ -1,0 +1,16 @@
+# Claude Code skills and agents copied from a private collection
+.claude/
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Node
+node_modules/
