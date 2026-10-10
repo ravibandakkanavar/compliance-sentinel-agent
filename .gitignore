@@ -14,3 +14,8 @@ __pycache__/
 
 # Node
 node_modules/
+
+# Generated output
+data/
+*.egg-info/
+.ruff_cache/
