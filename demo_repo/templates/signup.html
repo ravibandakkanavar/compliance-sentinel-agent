@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Create your ShopLite account</title>
+  </head>
+  <body>
+    <h1>Create your account</h1>
+    <form method="post" action="/signup">
+      <label>Email <input type="email" name="email" required /></label>
+      <label>Password <input type="password" name="password" required /></label>
+      <label>Full name <input type="text" name="full_name" required /></label>
+      <label>Date of birth <input type="date" name="date_of_birth" required /></label>
+      <label>Social security number <input type="text" name="ssn" required /></label>
+      <label>Annual income <input type="number" name="annual_income" required /></label>
+      <label>
+        <input type="checkbox" name="marketing" checked />
+        Send me offers and share my details with selected partners
+      </label>
+      <button type="submit">Sign up</button>
+    </form>
+  </body>
+</html>
