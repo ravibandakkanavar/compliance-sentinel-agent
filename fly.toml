@@ -1,0 +1,50 @@
+# Fly.io deployment. Before the first deploy:
+#   fly apps create <name>            and set `app` below to that name
+#   fly volumes create sentinel_data --size 1
+#   fly secrets set ANTHROPIC_API_KEY=... SENTINEL_DATABASE_URL=... SENTINEL_REDIS_URL=... \
+#                   SENTINEL_TRIGGER_TOKEN=... SENTINEL_SLACK_WEBHOOK_URL=...
+#   fly deploy --ha=false
+
+app = "compliance-sentinel-agent"
+primary_region = "bom"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[deploy]
+  release_command = "sentinel migrate"
+
+[processes]
+  worker = "sentinel worker --cron '0 6 * * *'"
+  api = "uvicorn sentinel.api:app --host 0.0.0.0 --port 8080"
+
+[[mounts]]
+  source = "sentinel_data"
+  destination = "/data"
+  processes = ["worker"]
+
+# The API machine stops when idle and starts on the next request. The worker
+# has no HTTP service, so Fly keeps it running: it must be up to fire the schedule.
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["api"]
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/health"
+    interval = "30s"
+    timeout = "5s"
+
+[[vm]]
+  processes = ["worker"]
+  memory = "2gb"
+  cpus = 1
+
+[[vm]]
+  processes = ["api"]
+  memory = "512mb"
+  cpus = 1
