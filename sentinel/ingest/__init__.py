@@ -14,7 +14,12 @@ from sentinel.store.base import Store
 
 log = logging.getLogger(__name__)
 
-_EXTENSIONS = {"text/html": "html", "application/pdf": "pdf", "text/markdown": "md"}
+_EXTENSIONS = {
+    "text/html": "html",
+    "application/pdf": "pdf",
+    "text/markdown": "md",
+    "application/json": "json",
+}
 
 
 @dataclass

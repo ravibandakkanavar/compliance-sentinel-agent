@@ -39,7 +39,7 @@ build-backend = "setuptools.build_meta"
 include = ["sentinel*"]
 
 [tool.setuptools.package-data]
-sentinel = ["report/templates/*", "migrations/*.sql", "fixtures/*"]
+sentinel = ["report/templates/*", "migrations/*.sql", "fixtures/*", "sources.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

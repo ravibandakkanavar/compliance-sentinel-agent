@@ -39,10 +39,12 @@ def fetch_html(url: str, wait_for: str | None = None, timeout_ms: int = 60_000) 
         return page.content()
 
 
-def fetch_bytes(url: str, timeout_ms: int = 120_000) -> bytes:
+def fetch_bytes(
+    url: str, headers: dict[str, str] | None = None, timeout_ms: int = 120_000
+) -> bytes:
     """Download a file (for example a PDF) through the browser's network stack."""
     with browser_context() as context:
-        response = context.request.get(url, timeout=timeout_ms)
+        response = context.request.get(url, headers=headers, timeout=timeout_ms)
         if not response.ok:
             raise RuntimeError(f"GET {url} returned HTTP {response.status}")
         return response.body()

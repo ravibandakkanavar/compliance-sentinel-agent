@@ -1,0 +1,54 @@
+# Regulatory sources scraped on every run.
+#
+# `include` limits a source to the listed sections. The defaults keep the
+# sections that govern how software handles personal data and leave out
+# institutional and procedural ones, which keeps model cost per run bounded.
+# Remove `include` to ingest a whole instrument.
+
+sources:
+  - name: gdpr
+    adapter: eurlex
+    regulation: GDPR
+    url: https://eur-lex.europa.eu/eli/reg/2016/679/oj
+    options:
+      celex: 32016R0679
+      title: Regulation (EU) 2016/679 (General Data Protection Regulation)
+      include:
+        - Article 5
+        - Article 6
+        - Article 7
+        - Article 9
+        - Article 15
+        - Article 16
+        - Article 17
+        - Article 18
+        - Article 20
+        - Article 21
+        - Article 25
+        - Article 32
+
+  - name: ccpa-regulations
+    adapter: cppa
+    regulation: CCPA Regulations
+    url: https://cppa.ca.gov/regulations/
+    options:
+      title: California Consumer Privacy Act Regulations
+      link_text: CCPA Regulations
+      include:
+        - § 7002
+        - § 7004
+        - § 7012
+        - § 7013
+        - § 7022
+        - § 7023
+        - § 7024
+        - § 7025
+        - § 7026
+        - § 7027
+
+  - name: edpb-news
+    adapter: edpb
+    regulation: EDPB publications
+    url: https://www.edpb.europa.eu/feed/news_en
+    options:
+      title: European Data Protection Board news
