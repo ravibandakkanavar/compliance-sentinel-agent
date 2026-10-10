@@ -60,3 +60,8 @@ jobs:
           assert len(vector) == 384, len(vector)
           print('image smoke test passed')
           "
+      - name: The CLI finds the demo app and its answer key inside the image
+        run: |
+          docker run --rm compliance-sentinel sh -c "
+          echo '[]' > /tmp/none.json &&
+          sentinel score /tmp/none.json | grep 'detected: 0 of 12'"

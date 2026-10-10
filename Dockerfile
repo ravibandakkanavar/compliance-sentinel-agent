@@ -15,7 +15,8 @@ RUN apt-get update \
 WORKDIR /app
 COPY pyproject.toml ./
 COPY sentinel ./sentinel
-RUN pip install ".[pdf]" \
+# Editable, so the package resolves demo_repo/ and evals/ beside it under /app.
+RUN pip install -e ".[pdf]" \
     && playwright install --with-deps chromium \
     && rm -rf /var/lib/apt/lists/*
 
