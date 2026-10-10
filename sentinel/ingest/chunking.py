@@ -57,7 +57,9 @@ def split_section(section: Section, max_chars: int = MAX_CHUNK_CHARS) -> list[Se
         parts.append(current)
 
     return [
-        section.model_copy(update={"ref": f"{section.ref} (part {i} of {len(parts)})", "text": part})
+        section.model_copy(
+            update={"ref": f"{section.ref} (part {i} of {len(parts)})", "text": part}
+        )
         for i, part in enumerate(parts, start=1)
     ]
 

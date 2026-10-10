@@ -1,0 +1,104 @@
+{
+  "target": "demo_repo",
+  "description": "Violations seeded in the ShopLite demo app. Each one lists the places where a correct finding may point; a finding matches when it names one of those files within a few lines of the anchor text.",
+  "violations": [
+    {
+      "id": "plaintext-password",
+      "summary": "Passwords are stored and compared in plain text.",
+      "locations": [
+        {"file": "db.py", "anchor": "INSERT INTO users (email, password, full_name"},
+        {"file": "db.py", "anchor": "user[\"password\"] == password"},
+        {"file": "db.py", "anchor": "password TEXT NOT NULL"},
+        {"file": "app.py", "anchor": "password=form[\"password\"]"}
+      ]
+    },
+    {
+      "id": "pii-in-logs",
+      "summary": "Email, social security number and date of birth are written to the application log.",
+      "locations": [
+        {"file": "app.py", "anchor": "New signup id=%s email=%s ssn=%s dob=%s"}
+      ]
+    },
+    {
+      "id": "excessive-collection",
+      "summary": "Signup requires a social security number and annual income that the service has no need for.",
+      "locations": [
+        {"file": "app.py", "anchor": "ssn=form[\"ssn\"]"},
+        {"file": "templates/signup.html", "anchor": "name=\"ssn\" required"},
+        {"file": "templates/signup.html", "anchor": "name=\"annual_income\" required"},
+        {"file": "db.py", "anchor": "ssn TEXT"}
+      ]
+    },
+    {
+      "id": "pre-ticked-consent",
+      "summary": "The marketing consent checkbox is ticked by default, and the database default is opted in.",
+      "locations": [
+        {"file": "templates/signup.html", "anchor": "name=\"marketing\" checked"},
+        {"file": "db.py", "anchor": "marketing_opt_in INTEGER DEFAULT 1"}
+      ]
+    },
+    {
+      "id": "marketing-without-consent-check",
+      "summary": "Campaign emails go to every active user without checking marketing consent.",
+      "locations": [
+        {"file": "services/marketing.py", "anchor": "for user in db.all_active_users():"}
+      ]
+    },
+    {
+      "id": "soft-delete-only",
+      "summary": "Account deletion only sets a flag; the personal data stays in the database.",
+      "locations": [
+        {"file": "db.py", "anchor": "UPDATE users SET deleted = 1"},
+        {"file": "app.py", "anchor": "db.mark_deleted(user_id)"}
+      ]
+    },
+    {
+      "id": "unauthenticated-data-access",
+      "summary": "The data export endpoint returns any user's profile and orders without checking who is asking.",
+      "locations": [
+        {"file": "app.py", "anchor": "def export_user_data(user_id):"}
+      ]
+    },
+    {
+      "id": "third-party-sharing-without-consent",
+      "summary": "Email, name, date of birth and IP address are sent to an analytics vendor without consent.",
+      "locations": [
+        {"file": "services/analytics.py", "anchor": "\"email\": user[\"email\"]"},
+        {"file": "app.py", "anchor": "analytics.track(\"signup\""}
+      ]
+    },
+    {
+      "id": "unencrypted-transfer",
+      "summary": "Personal data is sent to the analytics vendor over plain HTTP.",
+      "locations": [
+        {"file": "config.py", "anchor": "http://collect.trackwise.example"},
+        {"file": "services/analytics.py", "anchor": "requests.post(config.ANALYTICS_ENDPOINT"}
+      ]
+    },
+    {
+      "id": "no-retention-limit",
+      "summary": "Retention is disabled by configuration, so orders and access logs are kept indefinitely.",
+      "locations": [
+        {"file": "config.py", "anchor": "RETENTION_DAYS = None"},
+        {"file": "services/retention.py", "anchor": "if config.RETENTION_DAYS is None:"},
+        {"file": "db.py", "anchor": "INSERT INTO access_log"}
+      ]
+    },
+    {
+      "id": "hardcoded-credentials",
+      "summary": "The session signing key and SMTP password are hardcoded in source.",
+      "locations": [
+        {"file": "config.py", "anchor": "SECRET_KEY = "},
+        {"file": "config.py", "anchor": "SMTP_PASSWORD = "}
+      ]
+    },
+    {
+      "id": "sale-ignores-opt-out",
+      "summary": "The audience feed sold to the advertising partner ignores the do-not-sell flag.",
+      "locations": [
+        {"file": "services/partners.py", "anchor": "for user in db.all_active_users()"},
+        {"file": "services/partners.py", "anchor": "requests.post(config.PARTNER_FEED_URL"}
+      ]
+    }
+  ]
+}

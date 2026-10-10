@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Compliance audit report, run {{ run.id }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 16mm 18mm 16mm;
+    @bottom-left { content: "Compliance Sentinel, run {{ run.id }}"; font-size: 8pt; color: #666; }
+    @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 8pt; color: #666; }
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 10pt; line-height: 1.45; color: #1a1a1a; margin: 0 auto; max-width: 900px; padding: 0 12px; }
+  h1 { font-size: 20pt; margin: 0 0 4px; }
+  h2 { font-size: 13pt; margin: 26px 0 8px; padding-bottom: 4px; border-bottom: 1.5px solid #1a1a1a; break-after: avoid; }
+  h3 { font-size: 10.5pt; margin: 0 0 6px; }
+  p { margin: 0 0 8px; }
+  .meta { color: #555; font-size: 9pt; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-size: 9pt; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid #d5d5d5; vertical-align: top; }
+  th { background: #f1f1f1; font-weight: 600; }
+  td.num, th.num { text-align: right; }
+  .tiles { display: flex; gap: 8px; margin: 12px 0; }
+  .tile { flex: 1; border: 1px solid #c9c9c9; border-top-width: 4px; padding: 8px 10px; }
+  .tile .count { font-size: 18pt; font-weight: 700; line-height: 1.1; }
+  .tile .label { font-size: 8pt; text-transform: uppercase; letter-spacing: .05em; color: #555; }
+  .critical { border-top-color: #9f1d1d; } .high { border-top-color: #c2570c; }
+  .medium { border-top-color: #a67c00; } .low { border-top-color: #4b6b8a; }
+  .badge { display: inline-block; padding: 1px 7px; font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #fff; }
+  .badge.critical { background: #9f1d1d; } .badge.high { background: #c2570c; }
+  .badge.medium { background: #a67c00; } .badge.low { background: #4b6b8a; }
+  .finding { border: 1px solid #c9c9c9; border-left-width: 5px; padding: 10px 12px; margin: 0 0 12px; break-inside: avoid; }
+  .finding.critical { border-left-color: #9f1d1d; } .finding.high { border-left-color: #c2570c; }
+  .finding.medium { border-left-color: #a67c00; } .finding.low { border-left-color: #4b6b8a; }
+  .finding .where { font-family: Consolas, "Courier New", monospace; font-size: 8.5pt; color: #333; }
+  pre { background: #f6f6f6; border: 1px solid #dedede; padding: 6px 8px; margin: 6px 0 8px; font-family: Consolas, "Courier New", monospace; font-size: 8pt; white-space: pre-wrap; word-break: break-word; }
+  blockquote { margin: 6px 0 4px; padding: 4px 10px; border-left: 3px solid #888; color: #222; font-style: italic; }
+  .cite { font-size: 8pt; color: #555; word-break: break-all; }
+  .label-row { font-size: 8pt; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 8px 0 2px; }
+  .empty { padding: 14px; border: 1px dashed #aaa; color: #444; }
+  .new-tag { font-size: 7.5pt; font-weight: 700; color: #9f1d1d; margin-left: 6px; }
+</style>
+</head>
+<body>
+
+<h1>Compliance audit report</h1>
+<p class="meta">
+  Run {{ run.id }} &middot; started {{ run.started_at.strftime("%Y-%m-%d %H:%M UTC") }}
+  {% if run.finished_at %}&middot; finished {{ run.finished_at.strftime("%Y-%m-%d %H:%M UTC") }}{% endif %}
+  &middot; target <strong>{{ target_name }}</strong>
+</p>
+
+<h2>Executive summary</h2>
+<p>{{ summary }}</p>
+<div class="tiles">
+  {% for severity in severities %}
+  <div class="tile {{ severity }}">
+    <div class="count">{{ counts[severity] }}</div>
+    <div class="label">{{ severity }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% if previous %}
+<p>
+  Compared with run {{ previous.id }} ({{ previous.started_at.strftime("%Y-%m-%d") }}):
+  {{ new_keys | length }} finding{{ "" if new_keys | length == 1 else "s" }} not reported before.
+</p>
+{% endif %}
+
+<h2>What changed in the regulations</h2>
+{% if changes %}
+<table>
+  <tr><th>Regulation</th><th>Section</th><th>Title</th><th>Retrieved</th></tr>
+  {% for chunk in changes %}
+  <tr>
+    <td>{{ chunk.regulation }}</td>
+    <td>{{ chunk.section_ref if chunk.kind == "rule" else "Notice" }}</td>
+    <td>{{ chunk.title }}</td>
+    <td>{{ chunk.retrieved_at.strftime("%Y-%m-%d") if chunk.retrieved_at else "" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% if changes_omitted %}<p class="meta">{{ changes_omitted }} more new or amended sections are not listed.</p>{% endif %}
+{% else %}
+<p class="empty">No new or amended regulation text since the previous run.</p>
+{% endif %}
+
+<h2>Findings</h2>
+{% if findings %}
+<table>
+  <tr><th>#</th><th>Severity</th><th>Location</th><th>Obligation</th><th>Rule</th><th class="num">Confidence</th></tr>
+  {% for f in findings %}
+  <tr>
+    <td>{{ loop.index }}</td>
+    <td><span class="badge {{ f.severity.value }}">{{ f.severity.value }}</span></td>
+    <td>{{ f.file }}:{{ f.line_start }}</td>
+    <td>{{ f.obligation_title }}</td>
+    <td>{{ f.regulation }}, {{ f.section_ref }}</td>
+    <td class="num">{{ "%.0f" | format(f.confidence * 100) }}%</td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% for f in findings %}
+<div class="finding {{ f.severity.value }}">
+  <h3>
+    {{ loop.index }}. {{ f.obligation_title }}
+    <span class="badge {{ f.severity.value }}">{{ f.severity.value }}</span>
+    {% if previous and finding_key(f) in new_keys %}<span class="new-tag">NEW</span>{% endif %}
+  </h3>
+  <div class="where">{{ f.file }}, line{{ "s" if f.line_end > f.line_start else "" }} {{ f.line_start }}{% if f.line_end > f.line_start %}&ndash;{{ f.line_end }}{% endif %}</div>
+  <pre>{{ f.snippet }}</pre>
+  <p>{{ f.explanation }}</p>
+  <div class="label-row">Rule breached</div>
+  <blockquote>{{ f.regulation_quote }}</blockquote>
+  <div class="cite">
+    {{ f.regulation }}, {{ f.section_ref }}
+    {% if f.source_url %}&middot; {{ f.source_url }}{% endif %}
+    {% if f.retrieved_at %}&middot; retrieved {{ f.retrieved_at.strftime("%Y-%m-%d") }}{% endif %}
+  </div>
+  <div class="label-row">Remediation</div>
+  <p>{{ f.remediation }}</p>
+</div>
+{% endfor %}
+{% else %}
+<p class="empty">No violations were found for the obligations audited in this run.</p>
+{% endif %}
+
+<h2>Appendix A: rules checked</h2>
+{% if obligations %}
+<table>
+  <tr><th>Rule</th><th>Obligation</th><th>Requirement</th><th class="num">Findings</th></tr>
+  {% for o in obligations %}
+  <tr>
+    <td>{{ o.regulation }}, {{ o.section_ref }}</td>
+    <td>{{ o.title }}</td>
+    <td>{{ o.requirement }}</td>
+    <td class="num">{{ findings_per_obligation.get(o.id, 0) }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="empty">No obligations were audited in this run.</p>
+{% endif %}
+
+<h2>Appendix B: run details</h2>
+<table>
+  <tr><th>Item</th><th class="num">Value</th></tr>
+  {% for label, value in run_details %}
+  <tr><td>{{ label }}</td><td class="num">{{ value }}</td></tr>
+  {% endfor %}
+</table>
+<p class="meta">
+  Every finding in this report passed two automatic checks: the quoted code was found in the
+  named file, and the quoted rule text was found in the stored copy of the cited section.
+  Findings that failed either check were discarded and are counted above. The findings are
+  produced by a language model and should be confirmed by a qualified reviewer before they are
+  relied on.
+</p>
+
+</body>
+</html>

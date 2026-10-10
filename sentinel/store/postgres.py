@@ -102,7 +102,8 @@ class PostgresStore:
             INSERT INTO documents
                 (source, key, regulation, url, title, content_hash, snapshot_path, retrieved_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (source, key, content_hash) DO UPDATE SET retrieved_at = EXCLUDED.retrieved_at
+            ON CONFLICT (source, key, content_hash)
+            DO UPDATE SET retrieved_at = EXCLUDED.retrieved_at
             RETURNING id, source, key, regulation, url, title, content_hash, retrieved_at
             """,
             (

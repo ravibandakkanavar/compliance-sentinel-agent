@@ -43,12 +43,17 @@ sentinel = ["report/templates/*", "migrations/*.sql", "fixtures/*", "sources.yam
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["tests"]
 markers = ["postgres: needs a running Postgres with pgvector (set TEST_DATABASE_URL)"]
+filterwarnings = ["ignore::bs4.XMLParsedAsHTMLWarning"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-extend-exclude = ["demo_repo"]
+extend-exclude = ["demo_repo", "data", ".claude"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Header"]
