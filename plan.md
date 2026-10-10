@@ -118,9 +118,31 @@ Every finding must carry both a code location and a citation; that is what makes
 ## 8. Definition of done
 
 - [ ] Daily scheduled run completes on Fly.io without intervention
-- [ ] Scrapers detect changes and skip unchanged sources
+- [x] Scrapers detect changes and skip unchanged sources
 - [ ] Agent audits the demo repo and meets the evaluation targets
 - [ ] PDF report generated with a verified citation on every finding
 - [ ] Slack/email alert fires on critical findings
 - [ ] Public GitHub repo with README, architecture diagram and evaluation results
 - [ ] Loom demo recorded and linked in the README
+
+## 9. Build status (2026-10-10)
+
+The code for days 1 to 6 is written. The remaining boxes above need things the
+build machine did not have: an Anthropic API key, Docker, and a Fly.io deploy.
+
+What is left to do, in order:
+
+1. Run `sentinel run --demo` with an API key and fix whatever the first real model calls expose.
+2. Run the full audit of `demo_repo`, score it with `sentinel score`, and put the numbers in the README.
+3. Confirm the PDF and a Slack alert from a real run.
+4. Deploy to Fly.io and watch one scheduled run complete.
+5. Record the Loom demo.
+
+Where the build departed from this plan:
+
+- **No Node scheduler.** The Python `bullmq` package supports job schedulers, so decision 3's fallback applied and `scheduler/` was dropped.
+- **GDPR is fetched from the EU Publications Office endpoint**, because the EUR-Lex website blocks automated browsers.
+- **EDPB is monitored through its news feed** and its items are reported as notices, not audited as rules; the guidelines listing page was not reliably reachable.
+- **`scan_codebase` reads a small repository whole** instead of searching it, and uses regular-expression search only for repositories over a size budget. There are no AST tools.
+- **Alerts, retrieval and the worker are single modules** (`alerts.py`, `rag.py`, `queueing.py`), and migrations live in `sentinel/migrations/`.
+- **Embeddings are local** (`bge-small-en-v1.5` through fastembed), so no second API key is needed.
