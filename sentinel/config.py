@@ -5,7 +5,12 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# The provider SDKs read their API keys from the process environment, so the
+# .env file is loaded there as well as into Settings. Real variables win.
+load_dotenv()
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 REPO_ROOT = PACKAGE_DIR.parent
@@ -18,10 +23,15 @@ class Settings(BaseSettings):
     database_url: str = ""
     redis_url: str = "redis://localhost:6379"
 
-    # Model. Credentials come from ANTHROPIC_API_KEY, read by the SDK itself.
+    # Model provider: "anthropic" or "openai". Each SDK reads its own key
+    # (ANTHROPIC_API_KEY or OPENAI_API_KEY) from the environment.
+    provider: str = "anthropic"
     model: str = "claude-opus-5-5"
     effort: str = "medium"
     enable_fallbacks: bool = True
+    openai_model: str = "gpt-5.5"
+    # Empty uses the model's default. Set to low, medium or high for reasoning models.
+    openai_reasoning_effort: str = ""
 
     # Embeddings. "fastembed" runs a local ONNX model; "hash" needs no download.
     embedder: str = "fastembed"

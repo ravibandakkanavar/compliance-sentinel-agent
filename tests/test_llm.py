@@ -14,7 +14,7 @@ import anthropic
 import pytest
 
 from sentinel.agent.prompts import FindingBatch, ObligationBatch
-from sentinel.llm import ClaudeLLM, LLMRefusal
+from sentinel.llm import ClaudeLLM, LLMRefusal, OpenAILLM, get_llm
 
 
 class StubApi:
@@ -153,3 +153,84 @@ def test_truncated_output_is_an_error_not_an_empty_result(api, settings):
     api.reply = api.message('{"findings": [', stop_reason="max_tokens")
     with pytest.raises(Exception, match="max_tokens|parse|JSON|valid"):
         _llm(api, settings).parse("s", "c", "t", FindingBatch)
+
+
+def _completion(
+    content: str | None, finish_reason: str = "stop", refusal: str | None = None
+) -> dict:
+    return {
+        "id": "chatcmpl-stub",
+        "object": "chat.completion",
+        "created": 0,
+        "model": "gpt-5.5",
+        "choices": [
+            {
+                "index": 0,
+                "finish_reason": finish_reason,
+                "message": {"role": "assistant", "content": content, "refusal": refusal},
+            }
+        ],
+        "usage": {
+            "prompt_tokens": 200,
+            "completion_tokens": 40,
+            "total_tokens": 240,
+            "prompt_tokens_details": {"cached_tokens": 150},
+        },
+    }
+
+
+def _openai_llm(api: StubApi, settings, **overrides) -> OpenAILLM:
+    import openai
+
+    client = openai.OpenAI(api_key="test-key", base_url=f"{api.url}/v1", max_retries=0)
+    return OpenAILLM(settings.model_copy(update=overrides), client=client)
+
+
+def test_openai_request_puts_context_before_task_and_parses_the_schema(api, settings):
+    api.reply = _completion(json.dumps(FINDINGS))
+    llm = _openai_llm(api, settings)
+
+    result = llm.parse("system text", "repository source", "the obligation", FindingBatch)
+
+    assert result.findings[0].file == "db.py" and result.findings[0].confidence == 0.9
+    [request] = api.requests
+    body = request["body"]
+    assert request["path"] == "/v1/chat/completions"
+    assert body["model"] == "gpt-5.5"
+    assert body["messages"] == [
+        {"role": "system", "content": "system text"},
+        {"role": "user", "content": "repository source\n\nthe obligation"},
+    ]
+    assert body["response_format"]["type"] == "json_schema"
+    assert body["response_format"]["json_schema"]["strict"] is True
+    assert "reasoning_effort" not in body
+    assert (llm.usage.input_tokens, llm.usage.output_tokens, llm.usage.cache_read_tokens) == (
+        200,
+        40,
+        150,
+    )
+
+
+def test_openai_reasoning_effort_is_sent_only_when_configured(api, settings):
+    api.reply = _completion(json.dumps({"obligations": []}))
+    llm = _openai_llm(api, settings, openai_reasoning_effort="low", openai_model="gpt-5.5-pro")
+    llm.parse("s", "", "sections", ObligationBatch)
+
+    body = api.requests[0]["body"]
+    assert body["reasoning_effort"] == "low" and body["model"] == "gpt-5.5-pro"
+    assert body["messages"][1]["content"] == "sections"
+
+
+def test_openai_refusal_is_raised_as_the_shared_error(api, settings):
+    api.reply = _completion(None, refusal="I can't help with that.")
+    with pytest.raises(LLMRefusal, match="can't help"):
+        _openai_llm(api, settings).parse("s", "c", "t", FindingBatch)
+
+
+def test_provider_setting_selects_the_client(settings, monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    assert isinstance(get_llm(settings), ClaudeLLM)
+    assert isinstance(get_llm(settings.model_copy(update={"provider": "openai"})), OpenAILLM)
+    with pytest.raises(ValueError, match="Unknown provider"):
+        get_llm(settings.model_copy(update={"provider": "gemini"}))

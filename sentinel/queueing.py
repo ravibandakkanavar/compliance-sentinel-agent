@@ -50,7 +50,7 @@ async def enqueue_run(settings: Settings, data: dict) -> str:
 def _run_job(settings: Settings, data: dict) -> dict:
     # Imported here so enqueueing does not load the model, browser and store.
     from sentinel.ingest.embeddings import get_embedder
-    from sentinel.llm import ClaudeLLM
+    from sentinel.llm import get_llm
     from sentinel.pipeline import run_pipeline
     from sentinel.scrapers import demo_source, load_sources
     from sentinel.store import open_store
@@ -65,7 +65,7 @@ def _run_job(settings: Settings, data: dict) -> dict:
             settings,
             store,
             get_embedder(settings),
-            ClaudeLLM(settings),
+            get_llm(settings),
             sources,
             target_repo=data.get("repo"),
             full=bool(data.get("full")),

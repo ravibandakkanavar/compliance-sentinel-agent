@@ -1,4 +1,4 @@
-"""Structured calls to Claude through the Anthropic SDK."""
+"""Structured model calls. Claude and OpenAI sit behind the same `parse` interface."""
 
 from __future__ import annotations
 
@@ -86,3 +86,53 @@ class ClaudeLLM:
         if response.stop_reason == "max_tokens" or response.parsed_output is None:
             raise RuntimeError(f"model returned no parsed output (stop: {response.stop_reason})")
         return response.parsed_output
+
+
+class OpenAILLM:
+    def __init__(self, settings: Settings, client=None) -> None:
+        import openai
+
+        self._client = client or openai.OpenAI()
+        self._model = settings.openai_model
+        self._effort = settings.openai_reasoning_effort
+        self.usage = Usage()
+
+    def parse(self, system: str, context: str, task: str, schema: type[T]) -> T:
+        # OpenAI caches long shared prefixes automatically, so the stable
+        # context goes first and the varying task last; no markers are needed.
+        user_content = f"{context}\n\n{task}" if context else task
+        request = {
+            "model": self._model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user_content},
+            ],
+            "response_format": schema,
+        }
+        if self._effort:
+            request["reasoning_effort"] = self._effort
+        response = self._client.chat.completions.parse(**request)
+
+        self.usage.calls += 1
+        if response.usage is not None:
+            self.usage.input_tokens += response.usage.prompt_tokens
+            self.usage.output_tokens += response.usage.completion_tokens
+            details = response.usage.prompt_tokens_details
+            self.usage.cache_read_tokens += (details.cached_tokens or 0) if details else 0
+
+        choice = response.choices[0]
+        if choice.message.refusal:
+            raise LLMRefusal(f"model declined the request: {choice.message.refusal}")
+        if choice.finish_reason == "content_filter":
+            raise LLMRefusal("model output was blocked by the content filter")
+        if choice.message.parsed is None:
+            raise RuntimeError(f"model returned no parsed output (stop: {choice.finish_reason})")
+        return choice.message.parsed
+
+
+def get_llm(settings: Settings) -> LLM:
+    if settings.provider == "anthropic":
+        return ClaudeLLM(settings)
+    if settings.provider == "openai":
+        return OpenAILLM(settings)
+    raise ValueError(f"Unknown provider: {settings.provider!r} (use 'anthropic' or 'openai')")

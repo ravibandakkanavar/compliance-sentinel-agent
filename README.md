@@ -31,7 +31,7 @@ This is a portfolio project. What has and has not been exercised:
 | Change detection, chunking, verification, report, scoring, alerts, trigger API | Covered by the test suite |
 | Full pipeline | Tested end to end with a stubbed model |
 | Postgres store, Docker image (WeasyPrint, Chromium, embedding model) | Exercised by CI |
-| Calls to Claude | Written against the Anthropic SDK but **not yet run with a real API key**, so there are no measured recall or precision figures yet |
+| Model calls (Claude or OpenAI) | Request building and response parsing are tested against a local stand-in for each API, but **no audit has completed against a real model yet**, so there are no measured recall or precision figures |
 | Fly.io deployment | Configuration only; not deployed |
 
 The original brief claims this "saves legal teams 40+ hours/week". Nothing here
@@ -89,10 +89,10 @@ a qualified reviewer.
 
 ## Quick start
 
-Requirements: Docker, and an Anthropic API key.
+Requirements: Docker, and an Anthropic or OpenAI API key.
 
 ```bash
-cp .env.example .env          # then set ANTHROPIC_API_KEY
+cp .env.example .env          # then set ANTHROPIC_API_KEY, or OPENAI_API_KEY with SENTINEL_PROVIDER=openai
 docker compose up -d postgres redis
 docker compose run --rm migrate
 ```
@@ -188,7 +188,7 @@ sentinel/
   report/       Jinja2 template and WeasyPrint rendering
   migrations/   SQL schema
   fixtures/     the synthetic demo regulation, original and amended
-  llm.py        structured calls to Claude
+  llm.py        structured calls to Claude or OpenAI
   pipeline.py   one end-to-end run
   queueing.py   BullMQ schedule and worker
   api.py        /health and /trigger
@@ -210,6 +210,11 @@ tests/
   so it is served from the prompt cache, and a missing safeguard is visible
   where a keyword search would find nothing. Larger repositories fall back to
   search-selected snippets.
+- **Two model providers.** `SENTINEL_PROVIDER` selects `anthropic` (default,
+  `claude-opus-5-5`) or `openai` (`gpt-5.5`, change with `SENTINEL_OPENAI_MODEL`).
+  Both sit behind one `parse()` interface in `sentinel/llm.py`. Prompt-cache
+  markers and the refusal fallback apply to Claude only; OpenAI caches shared
+  prefixes on its own.
 - **Local embeddings.** Embeddings come from a small ONNX model
   (`bge-small-en-v1.5`) baked into the image, so retrieval needs no second API key.
 - **Refusal fallback is on.** Audit prompts discuss security weaknesses, which

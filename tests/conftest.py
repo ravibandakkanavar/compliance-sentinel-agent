@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 from collections.abc import Callable
 from pathlib import Path
@@ -18,6 +19,11 @@ from sentinel.llm import Usage
 from sentinel.store import MemoryStore
 
 DEMO_REPO = REPO_ROOT / "demo_repo"
+
+# Importing sentinel.config loads the developer's .env into the environment.
+# Tests must not depend on it, so every SENTINEL_ variable is removed again.
+for _name in [name for name in os.environ if name.startswith("SENTINEL_")]:
+    del os.environ[_name]
 
 _SECTION = re.compile(
     r'<section chunk_id="(\d+)" regulation="[^"]*" ref="([^"]*)">\n(.*?)\n(.*?)\n</section>',

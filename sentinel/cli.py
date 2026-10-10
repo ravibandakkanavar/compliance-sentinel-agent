@@ -77,7 +77,7 @@ def _cmd_search(args: argparse.Namespace) -> int:
 
 def _cmd_run(args: argparse.Namespace) -> int:
     from sentinel.ingest.embeddings import get_embedder
-    from sentinel.llm import ClaudeLLM
+    from sentinel.llm import get_llm
     from sentinel.pipeline import run_pipeline
     from sentinel.store import open_store
 
@@ -88,7 +88,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
             settings,
             store,
             get_embedder(settings),
-            ClaudeLLM(settings),
+            get_llm(settings),
             _sources(args, settings),
             target_repo=args.repo,
             full=args.full,
